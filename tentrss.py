@@ -11,7 +11,7 @@ tent_mime = 'application/vnd.tent.v0+json'
 
 @app.route('/')
 def front_page():
-    return 'TentRSS!'
+    return render_template('index.html')
 
 
 @app.route('/feed')
