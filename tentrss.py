@@ -25,9 +25,12 @@ def user_feed():
     # TODO: Should also look for HTML "link" tag in response content
     apiroots = None
     for link in re.split(',\s*', r.headers['link']):
-        href, rel = \
-            re.match('''<(https?://[^>]+)>; rel="(https?://[^\"]+)"\s*$''',
-                     link).groups()
+        pattern = '''<(https?://[^>]+)>; rel="(https?://[^\"]+)"\s*$'''
+        try:
+            href, rel = re.match(pattern, link).groups()
+        except AttributeError:
+            continue # try next link, this one didn't parse
+
         app.logger.debug('link: %s, rel=%s' % (href, rel))
         if rel != 'https://tent.io/rels/profile':
             continue
