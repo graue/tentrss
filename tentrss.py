@@ -73,7 +73,7 @@ def user_feed():
 
     # prepare info the template needs
     for post in posts:
-        post['post_link'] = root + '/posts/' + post['id']
+        post['post_guid'] = root + '/posts/' + post['id']
         dt = datetime.fromtimestamp(int(post['published_at']))
         post['rfc822_time'] = dt.strftime('%a, %d %b %Y %H:%M:%S %z')
 

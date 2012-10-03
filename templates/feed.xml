@@ -8,8 +8,10 @@
         <item>
             <description>{{ post['content']['text'] }}</description>
             <pubDate>{{ post['rfc822_time'] }}</pubDate>
+            {% if post['post_link'] is defined %}
             <link>{{ post['post_link'] }}</link>
-            <guid>{{ post['post_link'] }}</guid>
+            {% endif %}
+            <guid isPermaLink="false">{{ post['post_guid'] }}</guid>
         </item>
         {% endfor %}
     </channel>
