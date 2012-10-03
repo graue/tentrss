@@ -1,5 +1,7 @@
 import re
-from flask import Flask, request as flask_request
+from datetime import datetime
+from flask import Flask, render_template, make_response, \
+                  request as flask_request
 import requests
 app = Flask(__name__)
 
@@ -69,7 +71,17 @@ def user_feed():
         else:
             break
 
-    return "posts: %s" % repr(posts)
+    # prepare info the template needs
+    for post in posts:
+        post['post_link'] = root + '/posts/' + post['id']
+        dt = datetime.fromtimestamp(int(post['published_at']))
+        post['rfc822_time'] = dt.strftime('%a, %d %b %Y %H:%M:%S %z')
+
+    response = make_response(render_template('feed.xml',
+                                              posts=posts, uri=tent_uri,
+                                              root=root))
+    response.mimetype = 'application/xml'
+    return response
 
 if __name__ == '__main__':
     app.run()
