@@ -26,7 +26,10 @@ def user_feed():
     # list from the first profile link that works.
     # TODO: Should also look for HTML "link" tag in response content
     apiroots = None
-    for link in re.split(',\s*', r.headers['link']):
+    links = r.headers['link']
+    if links is None or links == '':
+        return 'Missing HTTP link header'
+    for link in re.split(',\s*', links):
         pattern = '''<(https?://[^>]+)>; rel="(https?://[^\"]+)"\s*$'''
         try:
             href, rel = re.match(pattern, link).groups()
