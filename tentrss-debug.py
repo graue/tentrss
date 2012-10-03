@@ -1,3 +1,3 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 import tentrss
 tentrss.app.run(debug = True)
