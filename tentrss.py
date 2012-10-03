@@ -88,8 +88,10 @@ def user_feed():
             post['post_link'] = 'https://' + m.groups()[0] \
                               + '.tent.is/posts/' + post['id']
 
-        dt = datetime.fromtimestamp(int(post['published_at']))
-        post['rfc822_time'] = dt.strftime('%a, %d %b %Y %H:%M:%S %z')
+        dt = datetime.utcfromtimestamp(int(post['published_at']))
+        # We don't know the actual timezone in which the user made this
+        # post, but UNIX timestamps are UTC-based so we hardcode +0000.
+        post['rfc822_time'] = dt.strftime('%a, %d %b %Y %H:%M:%S +0000')
 
     response = make_response(render_template('feed.xml',
                                               posts=posts, uri=tent_uri,
