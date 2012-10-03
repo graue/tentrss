@@ -73,7 +73,21 @@ def user_feed():
 
     # prepare info the template needs
     for post in posts:
+        # The protocol unfortunately does not give us a canonical URL for
+        # opening a post in a web browser. We can come up with a URL that
+        # that returns each individual post as raw JSON, but that's it.
+        #
+        # So, for user-friendliness use the JSON URL only as a GUID, but
+        # not a link (it will try to download a JSON file). For the time
+        # being at least, we will special-case https://username.tent.is/
+        # entities and provide a link in those cases only.
+
         post['post_guid'] = root + '/posts/' + post['id']
+        m = re.match('''https://(\w+)\.tent\.is/tent$''', root)
+        if m is not None:  # This is a Tent.is user
+            post['post_link'] = 'https://' + m.groups()[0] \
+                              + '.tent.is/posts/' + post['id']
+
         dt = datetime.fromtimestamp(int(post['published_at']))
         post['rfc822_time'] = dt.strftime('%a, %d %b %Y %H:%M:%S %z')
 
