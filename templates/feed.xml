@@ -6,7 +6,7 @@
         <link>{{ uri }}</link>
         {% for post in posts %}
         <item>
-            <description>{{ post['content']['text'] }}</description>
+            <description>{{ post['content']['text']|e|forceescape }}</description>
             <pubDate>{{ post['rfc822_time'] }}</pubDate>
             {% if post['post_link'] is defined %}
             <link>{{ post['post_link'] }}</link>
