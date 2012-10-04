@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from urlparse import urljoin
 from flask import Flask, render_template, make_response, \
                   request as flask_request
 import requests
@@ -34,7 +35,7 @@ def user_feed():
     if links is None or links == '':
         return 'Missing HTTP link header'
     for link in re.split(',\s*', links):
-        pattern = '''<(https?://[^>]+)>; rel="(https?://[^\"]+)"\s*$'''
+        pattern = '''<([^>]+)>; rel="(https?://[^\"]+)"\s*$'''
         try:
             href, rel = re.match(pattern, link).groups()
         except AttributeError:
@@ -43,6 +44,9 @@ def user_feed():
         app.logger.debug('link: %s, rel=%s' % (href, rel))
         if rel != 'https://tent.io/rels/profile':
             continue
+
+        # convert relative link (like "/profile") to absolute
+        href = urljoin(tent_uri, href)
 
         headers = {'accept': tent_mime}
         try:
