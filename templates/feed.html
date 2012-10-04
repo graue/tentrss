@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Feed for {{ uri }}</title>
+    </head>
+    <body>
+        <h2>Feed link</h2>
+        <p>If the below sample looks right,
+        <a href="{{ feed_url }}">here's your feed link</a>,
+        or copy and paste:</p>
+        <p><form><input type="text" style="min-width: 35em; "
+            value="{{ feed_url }}" readonly="readonly" /></form></p>
+        <h2>Sample feed for {{ uri }}</h2>
+        <ul>
+        {% for post in posts %}
+            <li>{{ post['content']['text'] }}</li>
+        {% endfor %}
+        </ul>
+    </body>
+</html>

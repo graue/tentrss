@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 from urlparse import urljoin
-from flask import Flask, render_template, make_response, \
+from flask import Flask, render_template, make_response, url_for, \
                   request as flask_request
 import requests
 app = Flask(__name__)
@@ -10,22 +10,15 @@ app = Flask(__name__)
 tent_mime = 'application/vnd.tent.v0+json'
 
 
-@app.route('/')
-def front_page():
-    return render_template('index.html')
-
-
-@app.route('/feed')
-def user_feed():
-    tent_uri = flask_request.args.get('uri', '')
+def get_latest_posts(tent_uri):
     app.logger.debug('tent_uri is %s' % tent_uri)
     if tent_uri == '':
-        return 'No URI!'
+        return None, None, 'No URI!'
     try:
         r = requests.get(tent_uri, timeout=5)
     except requests.ConnectionError as e:
         app.logger.debug('Connection to %s failed: %s' % (tent_uri, repr(e)))
-        return "Can't connect to %s" % tent_uri
+        return None, None, "Can't connect to %s" % tent_uri
 
     # Look for profile links in the HTTP "link" header and get API roots
     # list from the first profile link that works.
@@ -33,7 +26,7 @@ def user_feed():
     apiroots = None
     links = r.headers['link']
     if links is None or links == '':
-        return 'Missing HTTP link header'
+        return None, None, 'Missing HTTP link header'
     for link in re.split(',\s*', links):
         pattern = '''<([^>]+)>; rel="(https?://[^\"]+)"\s*$'''
         try:
@@ -61,7 +54,7 @@ def user_feed():
         break
 
     if apiroots is None or len(apiroots) == 0:
-        return "No API roots found!"
+        return None, None, "No API roots found!"
 
     args = {'limit': '10',
             'post_types': 'https://tent.io/types/post/status/v0.1.0'}
@@ -104,11 +97,38 @@ def user_feed():
         # post, but UNIX timestamps are UTC-based so we hardcode +0000.
         post['rfc822_time'] = dt.strftime('%a, %d %b %Y %H:%M:%S +0000')
 
-    response = make_response(render_template('feed.xml',
-                                              posts=posts, uri=tent_uri,
-                                              root=root))
-    response.mimetype = 'application/xml'
-    return response
+    return posts, root, None
+
+
+@app.route('/')
+def front_page():
+    tent_uri = flask_request.args.get('uri', '')
+    if tent_uri is None or tent_uri == '':
+        return render_template('index.html')
+    posts, root, error = get_latest_posts(tent_uri)
+
+    if error is None:
+        feed_url = urljoin(flask_request.host_url,
+                           url_for('user_feed') + '?uri=' + tent_uri)
+        return render_template('feed.html', posts=posts, uri=tent_uri,
+                               root=root, feed_url=feed_url)
+
+    return render_template('error.html', uri=tent_uri, error=error), 404
+
+
+@app.route('/feed')
+def user_feed():
+    tent_uri = flask_request.args.get('uri', '')
+    posts, root, error = get_latest_posts(tent_uri)
+
+    if error is None:
+        response = make_response(render_template('feed.xml',
+                                                  posts=posts, uri=tent_uri,
+                                                  root=root))
+        response.mimetype = 'application/xml'
+        return response
+
+    return render_template('error.html', uri=tent_uri, error=error), 404
 
 if __name__ == '__main__':
     app.run()
