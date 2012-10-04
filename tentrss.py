@@ -20,7 +20,11 @@ def user_feed():
     app.logger.debug('tent_uri is %s' % tent_uri)
     if tent_uri == '':
         return 'No URI!'
-    r = requests.get(tent_uri, timeout=5)
+    try:
+        r = requests.get(tent_uri, timeout=5)
+    except requests.ConnectionError as e:
+        app.logger.debug('Connection to %s failed: %s' % (tent_uri, repr(e)))
+        return "Can't connect to %s" % tent_uri
 
     # Look for profile links in the HTTP "link" header and get API roots
     # list from the first profile link that works.
