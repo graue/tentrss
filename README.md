@@ -1,6 +1,21 @@
+= TentRSS =
+
 Script to show public [Tent](https://tent.io/) status posts as an RSS feed.
 
 Based on [Flask](http://flask.pocoo.org/).
 See Flask's install instructions to get this running.
 
 You can find my Tent at https://graue.tent.is/
+
+== Example nginx proxy configuration ==
+
+    location /tentrss/ {
+        proxy_pass http://127.0.0.1:8001/;
+        proxy_redirect default;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Original-Request-URI $request_uri;
+    }
+
+The X-Original-Request-URI header allows TentRSS to generate a correct
+URL to the resulting feed.
