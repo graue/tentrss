@@ -108,8 +108,14 @@ def front_page():
     posts, root, error = get_latest_posts(tent_uri)
 
     if error is None:
+        # Generating the correct full absolute URL, given proxying,
+        # is hard! This needs an nginx directive to set the made-up
+        # X-Original-Request-URI header if proxying.
         feed_url = urljoin(flask_request.host_url,
-                           url_for('user_feed') + '?uri=' + tent_uri)
+                           flask_request.headers.get('X-Original-Request-URI',
+                                                     '/'))
+        feed_url = urljoin(feed_url,
+                           '.' + url_for('user_feed') + '?uri=' + tent_uri)
         return render_template('feed.html', posts=posts, uri=tent_uri,
                                root=root, feed_url=feed_url)
 
