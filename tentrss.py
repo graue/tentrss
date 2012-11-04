@@ -1,4 +1,5 @@
 import re
+import urllib
 from datetime import datetime
 from urlparse import urljoin
 from flask import Flask, render_template, make_response, url_for, \
@@ -100,6 +101,18 @@ def get_latest_posts(tent_uri):
     return posts, root, None
 
 
+def generate_feed_url(entity_uri):
+    """ Generate feed URL for the given Tent entity URI. """
+    # Generating the correct full absolute URL, given proxying,
+    # is hard! If proxying, this requires you add an
+    # X-Original-Request-URI header to the proxy configuration.
+    return urljoin(urljoin(flask_request.host_url,
+                           flask_request.headers.get('X-Original-Request-URI',
+                                                     '/')),
+                   '.' + url_for('user_feed') + '?uri=' +
+                   urllib.quote(entity_uri))
+
+
 @app.route('/')
 def front_page():
     tent_uri = flask_request.args.get('uri', '')
@@ -108,14 +121,7 @@ def front_page():
     posts, root, error = get_latest_posts(tent_uri)
 
     if error is None:
-        # Generating the correct full absolute URL, given proxying,
-        # is hard! This needs an nginx directive to set the made-up
-        # X-Original-Request-URI header if proxying.
-        feed_url = urljoin(flask_request.host_url,
-                           flask_request.headers.get('X-Original-Request-URI',
-                                                     '/'))
-        feed_url = urljoin(feed_url,
-                           '.' + url_for('user_feed') + '?uri=' + tent_uri)
+        feed_url = generate_feed_url(tent_uri)
         return render_template('feed.html', posts=posts, uri=tent_uri,
                                root=root, feed_url=feed_url)
 
@@ -128,9 +134,10 @@ def user_feed():
     posts, root, error = get_latest_posts(tent_uri)
 
     if error is None:
-        response = make_response(render_template('feed.xml',
-                                                  posts=posts, uri=tent_uri,
-                                                  root=root))
+        feed_url = generate_feed_url(tent_uri)
+        response = make_response(render_template('feed.xml', posts=posts,
+                                                  uri=tent_uri, root=root,
+                                                  feed_url=feed_url))
         response.mimetype = 'application/xml'
         return response
 
