@@ -32,7 +32,7 @@ def get_latest_posts(tent_uri):
         try:
             href, rel = re.match(pattern, link).groups()
         except AttributeError:
-            continue # try next link, this one didn't parse
+            continue  # try next link, this one didn't parse
 
         app.logger.debug('link: %s, rel=%s' % (href, rel))
         if rel != 'https://tent.io/rels/profile':
