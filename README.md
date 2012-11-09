@@ -7,7 +7,7 @@ Based on [Flask](http://flask.pocoo.org/).
 See Flask's install instructions to get this running.
 TentRSS also uses [Requests](http://python-requests.org/) to fetch URLs
 and [BeautifulSoup](http://www.crummy.com/software/BeautifulSoup/)
-to parse HTTP (for finding HTML `<link>` tags).
+to parse HTML (for finding HTML `<link>` tags).
 
 You can find my Tent at https://graue.tent.is/
 
