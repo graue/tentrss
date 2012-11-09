@@ -5,10 +5,38 @@ from urlparse import urljoin
 from flask import Flask, render_template, make_response, url_for, \
                   request as flask_request
 import requests
+from bs4 import BeautifulSoup
 app = Flask(__name__)
 
 
 tent_mime = 'application/vnd.tent.v0+json'
+tent_link_rel = 'https://tent.io/rels/profile'
+
+
+def get_profile_links_from(response):
+    """ Extract profile links from a Requests response. """
+    profiles = []
+
+    # Option 1: HTTP Link header.
+    links = response.headers['link']
+    if links is not None and links != '':
+        for link in re.split(',\s*', links):
+            pattern = '''<([^>]+)>; rel="(https?://[^\"]+)"\s*$'''
+            try:
+                href, rel = re.match(pattern, link).groups()
+            except AttributeError:
+                continue  # try next link. this one didn't parse
+
+            if rel == tent_link_rel:
+                profiles += [href]
+
+    # Option 2: HTML <link> tag.
+    soup = BeautifulSoup(response.content)
+    links = soup.findAll('link', rel=tent_link_rel)
+    profiles += [link['href'] for link in links]
+
+    # Returned profiles are converted to absolute URLs.
+    return [urljoin(response.url, href) for href in profiles]
 
 
 def get_latest_posts(tent_uri):
@@ -16,42 +44,28 @@ def get_latest_posts(tent_uri):
     if tent_uri == '':
         return None, None, 'No URI!'
     try:
-        r = requests.get(tent_uri, timeout=5)
+        response = requests.get(tent_uri, timeout=5)
     except requests.ConnectionError as e:
         app.logger.debug('Connection to %s failed: %s' % (tent_uri, repr(e)))
         return None, None, "Can't connect to %s" % tent_uri
 
-    # Look for profile links in the HTTP "link" header and get API roots
-    # list from the first profile link that works.
-    # TODO: Should also look for HTML "link" tag in response content
     apiroots = None
-    links = r.headers['link']
-    if links is None or links == '':
-        return None, None, 'Missing HTTP link header'
-    for link in re.split(',\s*', links):
-        pattern = '''<([^>]+)>; rel="(https?://[^\"]+)"\s*$'''
-        try:
-            href, rel = re.match(pattern, link).groups()
-        except AttributeError:
-            continue  # try next link, this one didn't parse
+    profiles = get_profile_links_from(response)
+    if len(profiles) == 0:
+        return None, None, 'No profile link found'
 
-        app.logger.debug('link: %s, rel=%s' % (href, rel))
-        if rel != 'https://tent.io/rels/profile':
-            continue
-
-        # convert relative link (like "/profile") to absolute
-        href = urljoin(tent_uri, href)
-
+    for profile in profiles:
         headers = {'accept': tent_mime}
         try:
-            r = requests.get(href, timeout=5, headers=headers)
-            r.raise_for_status()
+            response = requests.get(profile, timeout=5, headers=headers)
+            response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            app.logger.debug('exception loading %s: %s' % (href, repr(e)))
+            app.logger.debug('exception loading %s: %s' % (profile, repr(e)))
             continue
 
         # profile link worked, use it
-        apiroots = r.json['https://tent.io/types/info/core/v0.1.0']['servers']
+        apiroots = response \
+            .json['https://tent.io/types/info/core/v0.1.0']['servers']
         break
 
     if apiroots is None or len(apiroots) == 0:
