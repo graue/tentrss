@@ -13,6 +13,15 @@ tent_mime = 'application/vnd.tent.v0+json'
 tent_link_rel = 'https://tent.io/rels/profile'
 
 
+class TentRSSError(Exception):
+    """ A high-level error intended to be reported to the user. """
+    def __init__(self, desc):
+        self.desc = desc
+
+    def __str__(self):
+        return self.desc
+
+
 def get_profile_links_from(response):
     """ Extract profile links from a Requests response. """
     profiles = []
@@ -40,19 +49,24 @@ def get_profile_links_from(response):
 
 
 def get_latest_posts(tent_uri):
+    """ Return array of 10 latest posts from tent_uri.
+
+    Each post also has 'post_guid' and 'rfc822_time' elements set,
+    as well as 'post_link' in cases where a permalink is available.
+    """
     app.logger.debug('tent_uri is %s' % tent_uri)
     if tent_uri == '':
-        return None, 'No URI!'
+        raise TentRSSError('No URI!')
     try:
         response = requests.get(tent_uri, timeout=5)
     except requests.ConnectionError as e:
         app.logger.debug('Connection to %s failed: %s' % (tent_uri, repr(e)))
-        return None, "Can't connect to %s" % tent_uri
+        raise TentRSSError("Can't connect to %s" % tent_uri)
 
     apiroots = None
     profiles = get_profile_links_from(response)
     if len(profiles) == 0:
-        return None, 'No profile link found'
+        raise TentRSSError('No profile link found')
 
     for profile in profiles:
         headers = {'accept': tent_mime}
@@ -69,7 +83,7 @@ def get_latest_posts(tent_uri):
         break
 
     if apiroots is None or len(apiroots) == 0:
-        return None, "No API roots found!"
+        raise TentRSSError('No API roots found!')
 
     args = {'limit': '10',
             'post_types': 'https://tent.io/types/post/status/v0.1.0'}
@@ -112,7 +126,7 @@ def get_latest_posts(tent_uri):
         # post, but UNIX timestamps are UTC-based so we hardcode +0000.
         post['rfc822_time'] = dt.strftime('%a, %d %b %Y %H:%M:%S +0000')
 
-    return posts, None
+    return posts
 
 
 def generate_feed_url(entity_uri):
@@ -132,30 +146,33 @@ def front_page():
     tent_uri = flask_request.args.get('uri', '')
     if tent_uri is None or tent_uri == '':
         return render_template('index.html')
-    posts, error = get_latest_posts(tent_uri)
 
-    if error is None:
-        feed_url = generate_feed_url(tent_uri)
-        return render_template('feed.html', posts=posts, uri=tent_uri,
-                               feed_url=feed_url)
+    try:
+        posts = get_latest_posts(tent_uri)
+    except TentRSSError as e:
+        return render_template('error.html', uri=tent_uri, error=e), \
+               404
 
-    return render_template('error.html', uri=tent_uri, error=error), 404
+    feed_url = generate_feed_url(tent_uri)
+    return render_template('feed.html', posts=posts, uri=tent_uri,
+                            feed_url=feed_url)
 
 
 @app.route('/feed')
 def user_feed():
     tent_uri = flask_request.args.get('uri', '')
-    posts, error = get_latest_posts(tent_uri)
 
-    if error is None:
-        feed_url = generate_feed_url(tent_uri)
-        response = make_response(render_template('feed.xml', posts=posts,
-                                                  uri=tent_uri,
-                                                  feed_url=feed_url))
-        response.mimetype = 'application/xml'
-        return response
+    try:
+        posts = get_latest_posts(tent_uri)
+    except TentRSSError as e:
+        return render_template('error.html', uri=tent_uri, error=e), 404
 
-    return render_template('error.html', uri=tent_uri, error=error), 404
+    feed_url = generate_feed_url(tent_uri)
+    response = make_response(render_template('feed.xml', posts=posts,
+                                             uri=tent_uri,
+                                             feed_url=feed_url))
+    response.mimetype = 'application/xml'
+    return response
 
 if __name__ == '__main__':
     app.run()
