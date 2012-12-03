@@ -42,17 +42,17 @@ def get_profile_links_from(response):
 def get_latest_posts(tent_uri):
     app.logger.debug('tent_uri is %s' % tent_uri)
     if tent_uri == '':
-        return None, None, 'No URI!'
+        return None, 'No URI!'
     try:
         response = requests.get(tent_uri, timeout=5)
     except requests.ConnectionError as e:
         app.logger.debug('Connection to %s failed: %s' % (tent_uri, repr(e)))
-        return None, None, "Can't connect to %s" % tent_uri
+        return None, "Can't connect to %s" % tent_uri
 
     apiroots = None
     profiles = get_profile_links_from(response)
     if len(profiles) == 0:
-        return None, None, 'No profile link found'
+        return None, 'No profile link found'
 
     for profile in profiles:
         headers = {'accept': tent_mime}
@@ -69,7 +69,7 @@ def get_latest_posts(tent_uri):
         break
 
     if apiroots is None or len(apiroots) == 0:
-        return None, None, "No API roots found!"
+        return None, "No API roots found!"
 
     args = {'limit': '10',
             'post_types': 'https://tent.io/types/post/status/v0.1.0'}
@@ -112,7 +112,7 @@ def get_latest_posts(tent_uri):
         # post, but UNIX timestamps are UTC-based so we hardcode +0000.
         post['rfc822_time'] = dt.strftime('%a, %d %b %Y %H:%M:%S +0000')
 
-    return posts, root, None
+    return posts, None
 
 
 def generate_feed_url(entity_uri):
@@ -132,12 +132,12 @@ def front_page():
     tent_uri = flask_request.args.get('uri', '')
     if tent_uri is None or tent_uri == '':
         return render_template('index.html')
-    posts, root, error = get_latest_posts(tent_uri)
+    posts, error = get_latest_posts(tent_uri)
 
     if error is None:
         feed_url = generate_feed_url(tent_uri)
         return render_template('feed.html', posts=posts, uri=tent_uri,
-                               root=root, feed_url=feed_url)
+                               feed_url=feed_url)
 
     return render_template('error.html', uri=tent_uri, error=error), 404
 
@@ -145,12 +145,12 @@ def front_page():
 @app.route('/feed')
 def user_feed():
     tent_uri = flask_request.args.get('uri', '')
-    posts, root, error = get_latest_posts(tent_uri)
+    posts, error = get_latest_posts(tent_uri)
 
     if error is None:
         feed_url = generate_feed_url(tent_uri)
         response = make_response(render_template('feed.xml', posts=posts,
-                                                  uri=tent_uri, root=root,
+                                                  uri=tent_uri,
                                                   feed_url=feed_url))
         response.mimetype = 'application/xml'
         return response
