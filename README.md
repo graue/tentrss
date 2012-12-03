@@ -9,6 +9,12 @@ TentRSS also uses [Requests](http://python-requests.org/) to fetch URLs
 and [BeautifulSoup](http://www.crummy.com/software/BeautifulSoup/)
 to parse HTML (for finding HTML `<link>` tags).
 
+Finally, to run this in production you should install
+memcached and [pylibmc](http://pypi.python.org/pypi/pylibmc)
+which is used to cache the latest posts for a few minutes.
+Without pylibmc, Flask's SimpleCache will be used,
+which is intended only for development.
+
 You can find my Tent at https://graue.tent.is/
 
 Example nginx proxy configuration

@@ -4,6 +4,7 @@ from datetime import datetime
 from urlparse import urljoin
 from flask import Flask, render_template, make_response, url_for, \
                   request as flask_request
+from werkzeug.contrib.cache import SimpleCache, MemcachedCache
 import requests
 from bs4 import BeautifulSoup
 app = Flask(__name__)
@@ -11,6 +12,13 @@ app = Flask(__name__)
 
 tent_mime = 'application/vnd.tent.v0+json'
 tent_link_rel = 'https://tent.io/rels/profile'
+
+
+try:
+    cache = MemcachedCache(['127.0.0.1:11211'])
+except RuntimeError:  # memcache not available
+    cache = SimpleCache()
+CACHE_TIMEOUT = 300
 
 
 class TentRSSError(Exception):
@@ -54,6 +62,12 @@ def get_latest_posts(tent_uri):
     Each post also has 'post_guid' and 'rfc822_time' elements set,
     as well as 'post_link' in cases where a permalink is available.
     """
+
+    # check cache
+    posts = cache.get('posts:' + tent_uri)
+    if posts is not None:
+        return posts
+
     app.logger.debug('tent_uri is %s' % tent_uri)
     if tent_uri == '':
         raise TentRSSError('No URI!')
@@ -125,6 +139,9 @@ def get_latest_posts(tent_uri):
         # We don't know the actual timezone in which the user made this
         # post, but UNIX timestamps are UTC-based so we hardcode +0000.
         post['rfc822_time'] = dt.strftime('%a, %d %b %Y %H:%M:%S +0000')
+
+    # save result in cache
+    cache.set('posts:' + tent_uri, posts, CACHE_TIMEOUT)
 
     return posts
 
