@@ -17,6 +17,7 @@ tent_link_rel = 'https://tent.io/rels/profile'
 try:
     cache = MemcachedCache(['127.0.0.1:11211'])
 except RuntimeError:  # memcache not available
+    app.logger.warning('memcached not available; resorting to simple cache')
     cache = SimpleCache()
 CACHE_TIMEOUT = 300
 
