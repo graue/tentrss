@@ -15,7 +15,7 @@ which is used to cache the latest posts for a few minutes.
 Without pylibmc, Flask's SimpleCache will be used,
 which is intended only for development.
 
-You can find my Tent at https://graue.tent.is/
+Follow the author on Tent: https://scott.mn
 
 Example nginx proxy configuration
 ---------------------------------
