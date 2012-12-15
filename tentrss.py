@@ -1,3 +1,4 @@
+import os
 import re
 import urllib
 from datetime import datetime
@@ -9,6 +10,10 @@ import requests
 from bs4 import BeautifulSoup
 app = Flask(__name__)
 
+app.config.update(
+    DEBUG=(True if os.environ.get('DEBUG') in ['1', 'True'] else False),
+    PORT=int(os.environ.get('PORT', 5000)),
+)
 
 tent_mime = 'application/vnd.tent.v0+json'
 tent_link_rel = 'https://tent.io/rels/profile'
@@ -193,4 +198,4 @@ def user_feed():
     return response
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=app.config['PORT'])
