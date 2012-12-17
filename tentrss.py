@@ -98,8 +98,8 @@ def get_latest_posts(tent_uri):
             continue
 
         # profile link worked, use it
-        apiroots = response \
-            .json['https://tent.io/types/info/core/v0.1.0']['servers']
+        json = response.json()
+        apiroots = json['https://tent.io/types/info/core/v0.1.0']['servers']
         break
 
     if apiroots is None or len(apiroots) == 0:
@@ -118,7 +118,7 @@ def get_latest_posts(tent_uri):
             app.logger.debug('exception when getting %s: %s' % (url, repr(e)))
             continue
 
-        posts = r.json
+        posts = r.json()
         if posts is None:
             app.logger.debug('%s returned no valid JSON' % url)
         else:
