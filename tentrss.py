@@ -13,16 +13,16 @@ app = Flask(__name__)
 app.config.update(
     DEBUG=(True if os.environ.get('DEBUG') in ['1', 'True'] else False),
     PORT=int(os.environ.get('PORT', 5000)),
+    MEMCACHE_HOST=os.environ.get('MEMCACHE_HOST', None),
 )
 
 tent_mime = 'application/vnd.tent.v0+json'
 tent_link_rel = 'https://tent.io/rels/profile'
 
 
-try:
-    cache = MemcachedCache(['127.0.0.1:11211'])
-except RuntimeError:  # memcache not available
-    app.logger.warning('memcached not available; resorting to simple cache')
+if app.config['MEMCACHE_HOST'] is not None:
+    cache = MemcachedCache(app.config['MEMCACHE_HOST'])
+else:
     cache = SimpleCache()
 CACHE_TIMEOUT = 300
 
