@@ -14,6 +14,7 @@ app.config.update(
     DEBUG=(True if os.environ.get('DEBUG') in ['1', 'True'] else False),
     PORT=int(os.environ.get('PORT', 5000)),
     MEMCACHE_HOST=os.environ.get('MEMCACHE_HOST', None),
+    CACHE_TIMEOUT=int(os.environ.get('CACHE_TIMEOUT', 300)),
 )
 
 tent_mime = 'application/vnd.tent.v0+json'
@@ -24,7 +25,6 @@ if app.config['MEMCACHE_HOST'] is not None:
     cache = MemcachedCache(app.config['MEMCACHE_HOST'])
 else:
     cache = SimpleCache()
-CACHE_TIMEOUT = 300
 
 
 class TentRSSError(Exception):
@@ -147,7 +147,7 @@ def get_latest_posts(tent_uri):
         post['rfc822_time'] = dt.strftime('%a, %d %b %Y %H:%M:%S +0000')
 
     # save result in cache
-    cache.set('posts:' + tent_uri, posts, CACHE_TIMEOUT)
+    cache.set('posts:' + tent_uri, posts, app.config['CACHE_TIMEOUT'])
 
     return posts
 
