@@ -128,7 +128,7 @@ def get_latest_posts(tent_uri):
     for post in posts:
         # The protocol unfortunately does not give us a canonical URL for
         # opening a post in a web browser. We can come up with a URL that
-        # that returns each individual post as raw JSON, but that's it.
+        # returns each individual post as raw JSON, but that's it.
         #
         # So, for user-friendliness use the JSON URL only as a GUID, but
         # not a link (it will try to download a JSON file). For the time
